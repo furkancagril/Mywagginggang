@@ -1,0 +1,130 @@
+const dogs = JSON.parse(localStorage.getItem("dogs")) || [
+    { name: "Ace", img: "" }, { name: "Bailey", img: "" }, { name: "Banksy", img: "" }
+];
+const walkers = JSON.parse(localStorage.getItem("walkers")) || ["Magda", "Furkan", "Tina", "Merjen", "Ajay", "Dagmara", "Juan", "Lamiñya", "Kasia"];
+const schedules = JSON.parse(localStorage.getItem("schedules")) || {};
+
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.style.fontFamily = "Arial, sans-serif";
+    document.body.style.backgroundColor = "#f0f8ff";
+    document.body.style.textAlign = "center";
+});
+
+function renderLists() {
+    const dogContainer = document.getElementById("dogs");
+    dogContainer.innerHTML = "<h2>🐶 Dogs</h2>";
+    dogContainer.style.display = "flex";
+    dogContainer.style.flexWrap = "wrap";
+    dogContainer.style.gap = "10px";
+    dogContainer.style.justifyContent = "center";
+
+    dogs.forEach((dog, index) => {
+        let div = document.createElement("div");
+        div.className = "dog";
+        div.draggable = true;
+        div.dataset.dogIndex = index;
+        div.ondragstart = drag;
+        div.style.backgroundColor = "#ffebcd";
+        div.style.border = "2px solid #d2691e";
+        div.style.borderRadius = "10px";
+        div.style.padding = "10px";
+        div.style.textAlign = "center";
+        div.style.cursor = "grab";
+
+        let img = document.createElement("img");
+        img.src = dog.img || "https://via.placeholder.com/50";
+        img.alt = dog.name;
+        img.style.width = "50px";
+        img.style.height = "50px";
+        img.style.borderRadius = "50%";
+        img.style.cursor = "pointer";
+        img.onclick = () => editDogImage(index);
+
+        let span = document.createElement("span");
+        span.textContent = dog.name;
+        span.style.display = "block";
+        span.style.marginTop = "5px";
+        span.style.fontWeight = "bold";
+
+        div.appendChild(img);
+        div.appendChild(span);
+        dogContainer.appendChild(div);
+    });
+
+    const walkerContainer = document.getElementById("walkers");
+    walkerContainer.innerHTML = "<h2>🚶 Walkers</h2>";
+    walkerContainer.style.display = "flex";
+    walkerContainer.style.flexWrap = "wrap";
+    walkerContainer.style.gap = "15px";
+    walkerContainer.style.justifyContent = "center";
+
+    walkers.forEach(walker => {
+        let div = document.createElement("div");
+        div.className = "walker";
+        div.textContent = walker;
+        div.style.backgroundColor = "#add8e6";
+        div.style.border = "2px solid #4682b4";
+        div.style.borderRadius = "10px";
+        div.style.padding = "15px";
+        div.style.textAlign = "center";
+        div.style.fontWeight = "bold";
+        div.style.width = "150px";
+
+        let dropzone = document.createElement("div");
+        dropzone.className = "dropzone";
+        dropzone.dataset.walker = walker;
+        dropzone.ondrop = drop;
+        dropzone.ondragover = allowDrop;
+        dropzone.style.minHeight = "50px";
+        dropzone.style.marginTop = "10px";
+        dropzone.style.border = "2px dashed #4682b4";
+        dropzone.style.padding = "5px";
+
+        if (schedules[walker]) {
+            schedules[walker].forEach(dogName => {
+                let dogElement = document.createElement("div");
+                dogElement.textContent = dogName;
+                dropzone.appendChild(dogElement);
+            });
+        }
+
+        let notes = document.createElement("textarea");
+        notes.placeholder = "Notes for " + walker;
+        notes.dataset.walker = walker;
+        notes.oninput = saveNotes;
+        notes.value = localStorage.getItem("notes_" + walker) || "";
+        notes.style.marginTop = "10px";
+        notes.style.width = "100%";
+        notes.style.borderRadius = "5px";
+        notes.style.padding = "5px";
+
+        let downloadBtn = document.createElement("button");
+        downloadBtn.textContent = "📥 Download Schedule";
+        downloadBtn.onclick = () => downloadSchedule(walker);
+        downloadBtn.style.marginTop = "10px";
+        downloadBtn.style.padding = "5px 10px";
+        downloadBtn.style.border = "none";
+        downloadBtn.style.borderRadius = "5px";
+        downloadBtn.style.backgroundColor = "#4682b4";
+        downloadBtn.style.color = "white";
+        downloadBtn.style.cursor = "pointer";
+        downloadBtn.onmouseover = () => downloadBtn.style.backgroundColor = "#1e4e7e";
+        downloadBtn.onmouseout = () => downloadBtn.style.backgroundColor = "#4682b4";
+
+        div.appendChild(dropzone);
+        div.appendChild(notes);
+        div.appendChild(downloadBtn);
+        walkerContainer.appendChild(div);
+    });
+}
+
+document.getElementById("resetButton").style.padding = "10px 20px";
+document.getElementById("resetButton").style.border = "none";
+document.getElementById("resetButton").style.borderRadius = "5px";
+document.getElementById("resetButton").style.backgroundColor = "#ff6347";
+document.getElementById("resetButton").style.color = "white";
+document.getElementById("resetButton").style.cursor = "pointer";
+document.getElementById("resetButton").onmouseover = () => document.getElementById("resetButton").style.backgroundColor = "#c43d28";
+document.getElementById("resetButton").onmouseout = () => document.getElementById("resetButton").style.backgroundColor = "#ff6347";
+
+renderLists();
