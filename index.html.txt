@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Walker Scheduler</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            text-align: center;
+        }
+        #dogs, #walkers {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .dog, .walker {
+            background-color: #ffebcd;
+            border: 2px solid #d2691e;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            cursor: grab;
+        }
+        .dog img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .dropzone {
+            min-height: 50px;
+            margin-top: 10px;
+            border: 2px dashed #4682b4;
+            padding: 5px;
+        }
+        textarea {
+            width: 100%;
+            margin-top: 10px;
+            border-radius: 5px;
+            padding: 5px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4682b4;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #1e4e7e;
+        }
+        #resetButton {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #ff6347;
+        }
+        #resetButton:hover {
+            background-color: #c43d28;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐶 Dog Walker Scheduler</h1>
+    <div id="dogs"></div>
+    <div id="walkers"></div>
+    <button id="resetButton">Reset Schedules</button>
+
+    <script>
+        const dogs = JSON.parse(localStorage.getItem("dogs")) || [
+            { name: "Ace", img: "" },
+            { name: "Bailey", img: "" },
+            { name: "Banksy", img: "" }
+        ];
+        const walkers = JSON.parse(localStorage.getItem("walkers")) || ["Magda", "Furkan", "Tina", "Merjen", "Ajay"];
+        const schedules = JSON.parse(localStorage.getItem("schedules")) || {};
+
+        function renderLists() {
+            const dogContainer = document.getElementById("dogs");
+            dogContainer.innerHTML = "";
+            dogs.forEach((dog, index) => {
+                let div = document.createElement("div");
+                div.className = "dog";
+                div.draggable = true;
+                div.dataset.dogIndex = index;
+                div.ondragstart = drag;
+                
+                let img = document.createElement("img");
+                img.src = dog.img || "https://via.placeholder.com/50";
+                img.alt = dog.name;
+                img.onclick = () => editDogImage(index);
+                
+                let span = document.createElement("span");
+                span.textContent = dog.name;
+                
+                div.appendChild(img);
+                div.appendChild(span);
+                dogContainer.appendChild(div);
+            });
+
+            const walkerContainer = document.getElementById("walkers");
+            walkerContainer.innerHTML = "";
+            walkers.forEach(walker => {
+                let div = document.createElement("div");
+                div.className = "walker";
+                div.textContent = walker;
+
+                let dropzone = document.createElement("div");
+                dropzone.className = "dropzone";
+                dropzone.dataset.walker = walker;
+                dropzone.ondrop = drop;
+                dropzone.ondragover = allowDrop;
+
+                if (schedules[walker]) {
+                    schedules[walker].forEach(dogName => {
+                        let dogElement = document.createElement("div");
+                        dogElement.textContent = dogName;
+                        dropzone.appendChild(dogElement);
+                    });
+                }
+
+                let notes = document.createElement("textarea");
+                notes.placeholder = "Notes for " + walker;
+                notes.dataset.walker = walker;
+                notes.oninput = saveNotes;
+                notes.value = localStorage.getItem("notes_" + walker) || "";
+
+                let downloadBtn = document.createElement("button");
+                downloadBtn.textContent = "📥 Download Schedule";
+                downloadBtn.onclick = () => downloadSchedule(walker);
+
+                div.appendChild(dropzone);
+                div.appendChild(notes);
+                div.appendChild(downloadBtn);
+                walkerContainer.appendChild(div);
+            });
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function drag(event) {
+            event.dataTransfer.setData("text", event.target.dataset.dogIndex);
+        }
+
+        function drop(event) {
+            event.preventDefault();
+            let dogIndex = event.dataTransfer.getData("text");
+            let walker = event.target.dataset.walker;
+            let dogName = dogs[dogIndex].name;
+
+            if (!schedules[walker]) {
+                schedules[walker] = [];
+            }
+            if (!schedules[walker].includes(dogName)) {
+                schedules[walker].push(dogName);
+                localStorage.setItem("schedules", JSON.stringify(schedules));
+                renderLists();
+            }
+        }
+
+        function saveNotes(event) {
+            let walker = event.target.dataset.walker;
+            localStorage.setItem("notes_" + walker, event.target.value);
+        }
+
+        function editDogImage(index) {
+            let newImg = prompt("Enter image URL for " + dogs[index].name + ":");
+            if (newImg) {
+                dogs[index].img = newImg;
+                localStorage.setItem("dogs", JSON.stringify(dogs));
+                renderLists();
+            }
+        }
+
+        function downloadSchedule(walker) {
+            let schedule = schedules[walker] || [];
+            let notes = localStorage.getItem("notes_" + walker) || "";
+            let content = `Walker: ${walker}\nDogs: ${schedule.join(", ")}\nNotes: ${notes}`;
+            let blob = new Blob([content], { type: "text/plain" });
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = walker + "_schedule.txt";
+            link.click();
+        }
+
+        document.getElementById("resetButton").addEventListener("click", () => {
+            localStorage.removeItem("schedules");
+            renderLists();
+        });
+
+        renderLists();
+    </script>
+</body>
+</html>
