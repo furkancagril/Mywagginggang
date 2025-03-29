@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Walker Scheduler</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        #container {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        #dogs, #walkers {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 80vh;
+            overflow-y: scroll;
+            width: 45%;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: #ffebcd;
+        }
+        .dog, .walker {
+            background-color: #ffebcd;
+            border: 2px solid #d2691e;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            cursor: grab;
+        }
+        .dog img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .dog.scheduled {
+            background-color: #ffcccc;
+        }
+        .dropzone {
+            min-height: 50px;
+            margin-top: 10px;
+            border: 2px dashed #4682b4;
+            padding: 5px;
+        }
+        textarea {
+            width: 100%;
+            margin-top: 10px;
+            border-radius: 5px;
+            padding: 5px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4682b4;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #1e4e7e;
+        }
+        #resetButton {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #ff6347;
+        }
+        #resetButton:hover {
+            background-color: #c43d28;
+        }
+        #addDogButton, #addWalkerButton {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #32cd32;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #addDogButton:hover, #addWalkerButton:hover {
+            background-color: #228b22;
+        }
+        .form-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+        .form-container input, .form-container textarea {
+            width: 80%;
+            padding: 8px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐶 Dog Walker Scheduler</h1>
+    <div id="container">
+        <div id="dogs">
+            <h2>Dogs</h2>
+        </div>
+        <div id="walkers">
+            <h2>Walkers</h2>
+        </div>
+    </div>
+    <div class="form-container">
+        <button id="addDogButton">Add Dog</button>
+        <button id="addWalkerButton">Add Walker</button>
+    </div>
+    <button id="resetButton">Reset Schedules</button>
+
+    <script>
+        const dogs = JSON.parse(localStorage.getItem("dogs")) || [
+            { name: "Ace", img: "" },
+            { name: "Bailey", img: "" },
+            { name: "Banksy", img: "" },
+            { name: "Bear & Gofer", img: "" },
+            { name: "Beau & Ollie", img: "" },
+            { name: "Bertie", img: "" },
+            { name: "Bentley", img: "" },
+            { name: "Big Heidi", img: "" },
+            { name: "Big Hudson", img: "" },
+            { name: "Big Finn", img: "" },
+            { name: "Big Milo", img: "" },
+            { name: "Black Bear", img: "" },
+            { name: "Charlie", img: "" },
+            { name: "Chase", img: "" },
+            { name: "Chewy", img: "" },
+            { name: "Cleo", img: "" },
+            { name: "Coco", img: "" },
+            { name: "Eddie & Zane", img: "" },
+            { name: "Fermi & Pauli", img: "" },
+            { name: "Finley", img: "" },
+            { name: "Forrest", img: "" },
+            { name: "Hazel", img: "" },
+            { name: "Heidi", img: "" },
+            { name: "Henry", img: "" },
+            { name: "Lucky", img: "" },
+            { name: "Luna", img: "" },
+            { name: "Max & Sadie", img: "" },
+            { name: "Mid Finley", img: "" },
+            { name: "Migo", img: "" },
+            { name: "Milo", img: "" },
+            { name: "Mimi", img: "" },
+            { name: "Miso", img: "" },
+            { name: "Mo", img: "" },
+            { name: "Mochi & Pebbles", img: "" },
+            { name: "Oakley", img: "" },
+            { name: "Olive", img: "" },
+            { name: "Oslo", img: "" },
+            { name: "Piper", img: "" },
+            { name: "Play", img: "" },
+            { name: "Posey", img: "" },
+            { name: "Prancer", img: "" },
+            { name: "Rex", img: "" },
+            { name: "Rocco", img: "" },
+            { name: "Romy", img: "" },
+            { name: "Sadie", img: "" },
+            { name: "Samson", img: "" },
+            { name: "Sebastian", img: "" },
+            { name: "Small Finley", img: "" },
+            { name: "Tiger", img: "" },
+            { name: "Tinsley", img: "" },
+            { name: "Toby", img: "" },
+        ];
+
+        const walkers = JSON.parse(localStorage.getItem("walkers")) || [
+            "Magda", "Furkan", "Tina", "Kasia", "Hyunsook", "Merjen", "Ajay", "Kamilya", "Dagmara", "Juan"
+        ];
+
+        const schedules = JSON.parse(localStorage.getItem("schedules")) || {};
+
+        // Render Dogs and Walkers
+        function renderLists() {
+            const dogContainer = document.getElementById("dogs");
+            dogContainer.innerHTML = "<h2>Dogs</h2>";
+            dogs.forEach((dog, index) => {
+                let div = document.createElement("div");
+                div.className = "dog";
+                div.draggable = true;
+                div.dataset.dogIndex = index;
+                div.ondragstart = drag;
+
+                let img = document.createElement("img");
+                img.src = dog.img || "https://via.placeholder.com/50";
+                img.alt = dog.name;
+                img.onclick = () => editDogImage(index);
+
+                let span = document.createElement("span");
+                span.textContent = dog.name;
+
+                if (isScheduled(dog.name)) {
+                    div.classList.add("scheduled");
+                }
+
+                div.appendChild(img);
+                div.appendChild(span);
+                dogContainer.appendChild(div);
+            });
+
+            const walkerContainer = document.getElementById("walkers");
+            walkerContainer.innerHTML = "<h2>Walkers</h2>";
+            walkers.forEach(walker => {
+                let div = document.createElement("div");
+                div.className = "walker";
+                div.textContent = walker;
+
+                let dropzone = document.createElement("div");
+                dropzone.className = "dropzone";
+                dropzone.dataset.walker = walker;
+                dropzone.ondrop = drop;
+                dropzone.ondragover = allowDrop;
+
+                if (schedules[walker]) {
+                    schedules[walker].forEach(dogName => {
+                        let dogElement = document.createElement("div");
+                        dogElement.textContent = dogName;
+                        dropzone.appendChild(dogElement);
+                    });
+                }
+
+                div.appendChild(dropzone);
+                walkerContainer.appendChild(div);
+            });
+        }
+
+        // Helper Functions
+        function isScheduled(dogName) {
+            return Object.values(schedules).some(walkerSchedule => walkerSchedule.includes(dogName));
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function drag(event) {
+            event.dataTransfer.setData("text", event.target.dataset.dogIndex);
+        }
+
+        function drop(event) {
+            event.preventDefault();
+            let dogIndex = event.dataTransfer.getData("text");
+            let walker = event.target.dataset.walker;
+            let dogName = dogs[dogIndex].name;
+
+            if (!schedules[walker]) {
+                schedules[walker] = [];
+            }
+            if (!schedules[walker].includes(dogName)) {
+                schedules[walker].push(dogName);
+                localStorage.setItem("schedules", JSON.stringify(schedules));
+                renderLists();
+            }
+        }
+
+        function editDogImage(index) {
+            let inputFile = document.createElement("input");
+            inputFile.type = "file";
+            inputFile.accept = "image/*";
+            inputFile.onchange = function(event) {
+                let reader = new FileReader();
+                reader.onload = function() {
+                    dogs[index].img = reader.result;
+                    localStorage.setItem("dogs", JSON.stringify(dogs));
+                    renderLists();
+                };
+                reader.readAsDataURL(event.target.files[0]);
+            };
+            inputFile.click();
+        }
+
+        // Add New Dog
+        document.getElementById("addDogButton").addEventListener("click", () => {
+            let dogName = prompt("Enter dog name:");
+            if (dogName) {
+                dogs.push({ name: dogName, img: "" });
+                localStorage.setItem("dogs", JSON.stringify(dogs));
+                renderLists();
+            }
+        });
+
+        // Add New Walker
+        document.getElementById("addWalkerButton").addEventListener("click", () => {
+            let walkerName = prompt("Enter walker name:");
+            if (walkerName) {
+                walkers.push(walkerName);
+                localStorage.setItem("walkers", JSON.stringify(walkers));
+                renderLists();
+            }
+        });
+
+        document.getElementById("resetButton").addEventListener("click", () => {
+            localStorage.removeItem("schedules");
+            renderLists();
+        });
+
+        // Initial Rendering
+        renderLists();
+    </script>
+</body>
+</html>
