@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Walker Scheduler</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .box {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            margin: 10px;
+        }
+        .dog, .walker {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            background: #e8f5e9;
+            cursor: grab;
+            margin-top: 5px;
+        }
+        img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .dropzone {
+            border: 2px dashed #4CAF50;
+            min-height: 50px;
+            padding: 10px;
+            margin-top: 10px;
+            background: #f0fff0;
+        }
+        textarea {
+            width: 100%;
+            height: 60px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐶 Dog Walker Scheduler</h1>
+    <div class="container">
+        <div class="box">
+            <h2>Dogs</h2>
+            <input type="text" id="dogName" placeholder="Add a dog" />
+            <button onclick="addDog()">Add Dog</button>
+            <div id="dogs"></div>
+        </div>
+        <div class="box">
+            <h2>Walkers</h2>
+            <input type="text" id="walkerName" placeholder="Add a walker" />
+            <button onclick="addWalker()">Add Walker</button>
+            <div id="walkers"></div>
+        </div>
+    </div>
+    <button id="resetButton">Reset Schedules</button>
+    <script>
+        let dogs = JSON.parse(localStorage.getItem("dogs")) || [
+            { name: "Ace", img: "" }, { name: "Bailey", img: "" }, { name: "Banksy", img: "" }
+        ];
+        let walkers = JSON.parse(localStorage.getItem("walkers")) || ["Magda", "Furkan", "Tina"];
+
+        function renderLists() {
+            document.getElementById("dogs").innerHTML = "";
+            dogs.forEach((dog, index) => {
+                let div = document.createElement("div");
+                div.className = "dog";
+                div.draggable = true;
+                div.dataset.dogIndex = index;
+                div.ondragstart = drag;
+
+                let img = document.createElement("img");
+                img.src = dog.img || "https://via.placeholder.com/50";
+                img.onclick = () => editDogImage(index);
+                
+                let span = document.createElement("span");
+                span.textContent = dog.name;
+
+                div.appendChild(img);
+                div.appendChild(span);
+                document.getElementById("dogs").appendChild(div);
+            });
+
+            document.getElementById("walkers").innerHTML = "";
+            walkers.forEach(walker => {
+                let div = document.createElement("div");
+                div.className = "walker";
+                div.textContent = walker;
+
+                let dropzone = document.createElement("div");
+                dropzone.className = "dropzone";
+                dropzone.ondrop = drop;
+                dropzone.ondragover = allowDrop;
+                
+                let notes = document.createElement("textarea");
+                notes.placeholder = "Notes for " + walker;
+                notes.dataset.walker = walker;
+                notes.oninput = saveNotes;
+                notes.value = localStorage.getItem("notes_" + walker) || "";
+
+                div.appendChild(dropzone);
+                div.appendChild(notes);
+                document.getElementById("walkers").appendChild(div);
+            });
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+        function drag(event) {
+            event.dataTransfer.setData("text", event.target.dataset.dogIndex);
+        }
+        function drop(event) {
+            event.preventDefault();
+            let dogIndex = event.dataTransfer.getData("text");
+            let dog = dogs.splice(dogIndex, 1)[0];
+            event.target.appendChild(document.createTextNode(dog.name));
+            saveData();
+            renderLists();
+        }
+        function addDog() {
+            let name = document.getElementById("dogName").value;
+            if (name) {
+                dogs.push({ name, img: "" });
+                saveData();
+                renderLists();
+            }
+        }
+        function addWalker() {
+            let name = document.getElementById("walkerName").value;
+            if (name) {
+                walkers.push(name);
+                saveData();
+                renderLists();
+            }
+        }
+        function editDogImage(index) {
+            let input = document.createElement("input");
+            input.type = "file";
+            input.accept = "image/*";
+            input.onchange = function (event) {
+                let reader = new FileReader();
+                reader.onload = function () {
+                    dogs[index].img = reader.result;
+                    saveData();
+                    renderLists();
+                };
+                reader.readAsDataURL(event.target.files[0]);
+            };
+            input.click();
+        }
+        function saveNotes(event) {
+            localStorage.setItem("notes_" + event.target.dataset.walker, event.target.value);
+        }
+        function saveData() {
+            localStorage.setItem("dogs", JSON.stringify(dogs));
+            localStorage.setItem("walkers", JSON.stringify(walkers));
+        }
+        document.getElementById("resetButton").onclick = () => {
+            document.querySelectorAll(".dropzone").forEach(zone => zone.innerHTML = "");
+        };
+        renderLists();
+    </script>
+</body>
+</html>
